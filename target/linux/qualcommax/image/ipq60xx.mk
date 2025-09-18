@@ -229,3 +229,16 @@ define Device/yuncore_fap650
 	IMAGE/factory.ubin := append-ubi | qsdk-ipq-factory-nand
 endef
 TARGET_DEVICES += yuncore_fap650
+
+define Device/cambium_xv2-2
+	$(call Device/FitImage)
+	$(call Device/UbiFit)
+	DEVICE_VENDOR := Cambium Networks
+	DEVICE_MODEL := XV2-2
+	BLOCKSIZE := 128k
+	PAGESIZE := 2048
+	SOC := ipq6018
+	DEVICE_PACKAGES := ipq-wifi-cambium_xv2-2 kmod-leds-gpio
+	IMAGES := factory.ubi sysupgrade.bin
+endef
+TARGET_DEVICES += cambium_xv2-2

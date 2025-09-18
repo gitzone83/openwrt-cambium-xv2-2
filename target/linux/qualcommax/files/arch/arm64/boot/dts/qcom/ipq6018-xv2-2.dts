@@ -1,0 +1,281 @@
+// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
+
+/dts-v1/;
+
+#include "ipq6018-512m.dtsi"
+#include "ipq6018-cp-cpu.dtsi"
+#include "ipq6018-ess.dtsi"
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
+
+/ {
+	model = "Cambium Networks XV2-2";
+	compatible = "cambium,xv2-2", "qcom,ipq6018";
+
+	aliases {
+		serial0 = &blsp1_uart3;
+		led-boot = &led_status_blue;
+		led-running = &led_status_blue;
+		led-failsafe = &led_status_red;
+		led-upgrade = &led_status_green;
+	};
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+		bootargs-append = " root=/dev/ubiblock0_0";
+	};
+
+	gpio_keys {
+		compatible = "gpio-keys";
+		pinctrl-0 = <&button_pins>;
+		pinctrl-names = "default";
+
+		reset {
+			label = "reset";
+			linux,code = <KEY_RESTART>;
+			gpios = <&tlmm 60 GPIO_ACTIVE_LOW>;
+			debounce-interval = <60>;
+		};
+	};
+
+	leds {
+		compatible = "gpio-leds";
+		pinctrl-0 = <&leds_pins>;
+		pinctrl-names = "default";
+
+		led_status_red: status_red {
+			color = <LED_COLOR_ID_RED>;
+			function = LED_FUNCTION_STATUS;
+			gpios = <&tlmm 26 GPIO_ACTIVE_HIGH>;
+		};
+
+		led_status_green: status_green {
+			color = <LED_COLOR_ID_GREEN>;
+			function = LED_FUNCTION_STATUS;
+			gpios = <&tlmm 27 GPIO_ACTIVE_HIGH>;
+		};
+
+		led_status_blue: status_blue {
+			color = <LED_COLOR_ID_BLUE>;
+			function = LED_FUNCTION_STATUS;
+			gpios = <&tlmm 28 GPIO_ACTIVE_HIGH>;
+			default-state = "keep";
+		};
+	};
+
+	soc {
+		pinctrl@1000000 {
+			button_pins: button_pins {
+				reset_button {
+					pins = "gpio60";
+					function = "gpio";
+					drive-strength = <8>;
+					bias-pull-up;
+				};
+			};
+
+			leds_pins: leds_pins {
+				led_pins {
+					pins = "gpio26", "gpio27", "gpio28";
+					function = "gpio";
+					drive-strength = <8>;
+					bias-disable;
+				};
+			};
+		};
+
+
+		dp1 {
+			device_type = "network";
+			compatible = "qcom,nss-dp";
+			qcom,id = <1>;
+			reg = <0x3a001000 0x200>;
+			qcom,mactype = <0>;
+			local-mac-address = [000000000000];
+			qcom,link-poll = <1>;
+			qcom,phy-mdio-addr = <0>;
+			phy-mode = "sgmii";
+			phy-handle = <&ethernet_phy0>;
+		};
+
+		dp5 {
+			device_type = "network";
+			compatible = "qcom,nss-dp";
+			qcom,id = <5>;
+			reg = <0x3a003400 0x200>;
+			qcom,mactype = <0>;
+			local-mac-address = [000000000000];
+			qcom,link-poll = <1>;
+			qcom,phy-mdio-addr = <4>;
+			phy-mode = "sgmii";
+			phy-handle = <&ethernet_phy4>;
+		};
+	};
+};
+
+&tlmm {
+	hsuart_pins: hsuart-pins {
+		mux {
+			pins = "gpio69", "gpio70",
+				"gpio71", "gpio72";
+			function = "blsp1_uart";
+			drive-strength = <8>;
+			bias-disable;
+		};
+	};
+
+	mdio_pins: mdio_pinmux {
+		mux_0 {
+			pins = "gpio64";
+			function = "mdc";
+			drive-strength = <8>;
+			bias-pull-up;
+		};
+		mux_1 {
+			pins = "gpio65";
+			function = "mdio";
+			drive-strength = <8>;
+			bias-pull-up;
+		};
+	};
+};
+
+&blsp1_uart3 {
+	pinctrl-0 = <&hsuart_pins>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&prng {
+	status = "okay";
+};
+
+&cryptobam {
+	status = "okay";
+};
+
+&crypto {
+	status = "okay";
+};
+
+&qpic_bam {
+	status = "okay";
+};
+
+&qpic_nand {
+	status = "okay";
+	pinctrl-0 = <&qpic_pins>;
+	pinctrl-names = "default";
+
+	nand@0 {
+		reg = <0>;
+		nand-ecc-strength = <4>;
+		nand-ecc-step-size = <512>;
+		nand-bus-width = <8>;
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			bootloader@0 {
+				label = "bootloader";
+				reg = <0x0 0x100000>;
+				read-only;
+			};
+
+			bootloaderbackup@100000 {
+				label = "bootloaderbackup";
+				reg = <0x100000 0x100000>;
+				read-only;
+			};
+
+			art@200000 {
+				label = "art";
+				reg = <0x200000 0x80000>;
+				read-only;
+
+				precal_art_1000: precal@1000 {
+					reg = <0x1000 0x2f20>;
+				};
+
+				precal_art_5000: precal@5000 {
+					reg = <0x5000 0x2f20>;
+				};
+			};
+
+			art_bak@280000 {
+				label = "art_bak";
+				reg = <0x280000 0x80000>;
+				read-only;
+			};
+
+			config@300000 {
+				label = "config";
+				reg = <0x300000 0x80000>;
+			};
+
+			config_bak@380000 {
+				label = "config_bak";
+				reg = <0x380000 0x80000>;
+			};
+
+			ubi@400000 {
+				label = "ubi";
+				reg = <0x400000 0x7c00000>;
+
+				volumes {
+					ubi_rootfs: rootfs {
+						name = "rootfs";
+					};
+
+					ubi_rootfs_data: rootfs_data {
+						name = "rootfs_data";
+					};
+				};
+			};
+		};
+	};
+};
+
+&qusb_phy_0 {
+	status = "okay";
+};
+
+&ssphy_0 {
+	status = "okay";
+};
+
+&usb3 {
+	status = "okay";
+};
+
+&qusb_phy_1 {
+	status = "okay";
+};
+
+&usb2 {
+	status = "okay";
+};
+
+&mdio {
+	pinctrl-0 = <&mdio_pins>;
+	pinctrl-names = "default";
+	reset-gpios = <&tlmm 75 GPIO_ACTIVE_LOW>;
+
+	ethernet_phy0: ethernet-phy@0 {
+		compatible = "ethernet-phy-ieee802.3-c22";
+		reg = <0>;
+	};
+
+	ethernet_phy4: ethernet-phy@4 {
+		compatible = "ethernet-phy-ieee802.3-c22";
+		reg = <4>;
+	};
+};
+
+&wifi {
+	status = "okay";
+	qcom,ath11k-calibration-variant = "Cambium-XV2-2";
+};
